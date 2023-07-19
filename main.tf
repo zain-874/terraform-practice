@@ -13,26 +13,19 @@ data "aws_subnets" "default" {
   }
 }
 
-resource "aws_launch_configuration" "web" {
-  image_id        = "ami-0fb653ca2d3203ac1"
-  instance_type   = "t2.micro"
-  security_groups = [aws_security_group.instance.id]
+resource "aws_launch_template" "web" { 
+  image_id               = "ami-0fb653ca2d3203ac1"
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.instance.id]
 
-  user_data = <<-EOF
-              #!/bin/bash
-              echo "Hello, World" > index.html
-              nohup busybox httpd -f -p ${var.server_port} &
-              EOF
-
-# Required when using a launch configuration with an auto scaling group.
-  lifecycle {
-    create_before_destroy = true
-  }
+  user_data = filebase64("./Scripts/web-server.sh")
 }
 
 
 resource "aws_autoscaling_group" "example" {
-  launch_configuration = aws_launch_configuration.web.name
+  launch_template {
+    id      = aws_launch_template.web.id
+  }
   vpc_zone_identifier  = data.aws_subnets.default.ids
 
   min_size = 2
@@ -42,6 +35,9 @@ resource "aws_autoscaling_group" "example" {
     key                 = "Name"
     value               = "terraform-asg-example"
     propagate_at_launch = true
+  }
+  lifecycle {
+    create_before_destroy = true
   }
 }
  
