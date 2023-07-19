@@ -37,3 +37,7 @@ variable "server_port" {
   default     = 8080
 }
 
+output "public_ip" {
+  description = "showing public ip"
+  value       = aws_instance.web.public_ip
+}
